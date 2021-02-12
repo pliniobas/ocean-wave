@@ -14,7 +14,6 @@ from glob import glob
 register_matplotlib_converters()
 plt.close('all')
 
-
 def read_axys_hne(filename):
     """
     Leitura dos dados do sensor inercial da NavCon
@@ -337,7 +336,6 @@ def ondaf(eta, etax, etay, h, nfft, fs):
                'mean_zup_freq': mean_zup_freq, 'mean_zup_period': mean_zup_period,
                'e': e, 'v': v, 'hm0_sea': hm0_sea, 'hm0_swell': hm0_swell, 'tp_sea': tp_sea,
                'tp_swell': tp_swell, 'dp_sea': dp_sea, 'dp_swell': dp_swell}
-            
     return waveout
 
 def ondap(hm0, tp, dp, sn, dire1):
@@ -500,65 +498,4 @@ def plot_spec_dire1(df, waveout, filename):
     plt.close('all')
     return
 
-## Processamento em batelada
 
-if __name__ == '__main__':
-
-    # pathname dos dados
-    ppath = os.environ['HOME']
-    path_hne = ppath + '/gdrive/salinopolis/dados/pnboia/HNE_fortaleza_201612/'
-    path_out = ppath + '/gdrive/salinopolis/parametros_onda_fortaleza.csv'
-
-    # lista hne
-    lista_hne = np.sort(glob(path_hne + '*.HNE'))
-
-    # vetor de tempo em segundos
-    t = np.arange(0, 1930, 0.78)
-
-    # profundidade
-    h = 200.0
-
-    wparam = []
-    for filename in lista_hne:
-        # condition of numer of lines (quality control)
-        num_lines = sum(1 for line in open(filename, encoding='utf-8', errors='ignore'))
-
-        # condicao de arquivo com todas as linhas
-        if num_lines == 1324:
-            print (filename)
-
-            # leitura dos dados
-            df = read_axys_hne(filename)
-
-            # processamento dos dados no dominio do tempo
-            H, T, hs, h10, hmax, tz, thmax = ondat(t, df.hv.values, h)
-
-            # processamento dos dados no dominio da frequencia
-            waveout = ondaf(eta=df.hv.values,
-                            etax=df.dn.values,
-                            etay=df.de.values,
-                            h=h, nfft=int(len(df) / 16),
-                            fs=1.28)
-
-            # processamento de onda particionado
-            hm01, tp1, dp1, hm02, tp2, dp2 = ondap(waveout['hm0'], waveout['tp'],
-                                                   waveout['dp'], waveout['sn'],
-                                                   waveout['dire1'])
-
-            datastr = str(pd.to_datetime(filename.split('/')[-1].split('.')[0]))
-            wparam.append([datastr, hs, h10, hmax, tz, thmax, waveout['hm0'], waveout['tp'],
-                waveout['dp'], waveout['mean_spec_period'], waveout['mean_zup_period']])
-
-            # plot_spec_dire1(df, waveout, filename)            
-        else:
-            print ('dado {} com erro'.format(filename.split('/')[-1]))
-
-    # cria dataframe
-    wparam = np.array(wparam)
-    df_param = pd.DataFrame(wparam[:,1:], index=wparam[:,0],
-                            columns = ['hs', 'h10', 'hmax', 'tz', 'thmax', 'hm0', 'tp', 'dp',
-                            'mean_spec_period', 'mean_zup_period']).astype(float)
-
-    # salva arquivo csv
-    df_param.index.name = 'date'
-    df_param.to_csv(path_out, float_format='%.2f')
