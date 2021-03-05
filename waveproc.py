@@ -194,8 +194,10 @@ def ondat(t, eta, h):
 
     #parametros de onda no tempo
     # pondat = np.array([Hs,H10,Hmax,Tmed,THmax])
+    waveout = {'H': H, 'T': T, 'hs': hs, 'h10': h10,
+               'hmax': hmax, 'tz': tz, 'thmax': thmax}
 
-    return H, T, hs, h10, hmax, tz, thmax
+    return waveout
 
 def ondaf(eta, etax, etay, h, nfft, fs):
     """
@@ -246,7 +248,7 @@ def ondaf(eta, etax, etay, h, nfft, fs):
 
     #calcula direcao de onda
     #mean direction
-    dire1 = np.array([np.angle(np.complex(b1[i],a1[i]),deg=True) for i in range(len(a1))])
+    dire1 = np.array([np.angle(np.complex(b1[i],a1[i]), deg=True) for i in range(len(a1))])
 
     #principal direction
     dire2 = 0.5 * np.array([np.angle(np.complex(b2[i],a2[i]),deg=True) for i in range(len(a2))])
