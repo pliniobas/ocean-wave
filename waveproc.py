@@ -444,7 +444,7 @@ def ondap(hm0, tp, dp, sn, dire1):
 
     return hm01, tp1, dp1, hm02, tp2, dp2 #pondaf1
 
-def spread(en,a1,b1):
+def spread(en, a1, b1):
     '''
     Programa para calcular o espalhamento angular
     Kuik et al 1988
