@@ -481,23 +481,30 @@ def jonswap(f, Hm0, Tp, gamma=3.3, sigma_low=.07, sigma_high=.09, g=9.81):
     E_js = E_pm * gamma**np.exp(-0.5 * (Tp * f - 1)**2. / sigma**2.)
     return E_js
 
-def plot_spec_dire1(df, waveout, filename):
+def interp_spectra(p):
     """
-    Plotagem do espectro direcional
+    interpolacao para um vetor de frequencia fixo
     """
-    fig = plt.figure()
-    ax1 = fig.add_subplot(211)
-    ax1.plot(waveout['sn'][:,0], waveout['sn'][:,1])
-    ax1.set_title(str(df.index[0])[:-10])
-    ax1.set_ylabel('Energia (m²/Hz)')
-    ax1.grid()
-    ax2 = fig.add_subplot(212)
-    ax2.plot(waveout['sn'][:,0], waveout['dire1'])
-    ax2.set_xlabel('Frequência (Hz)')
-    ax2.set_ylabel('Direção (graus)')            
-    ax2.grid()
-    fig.savefig(path_fig + 'specdire_{}.png'.format(filename), bbox_inches='tight')
-    plt.close('all')
-    return
+    freq_interp = np.linspace(0, 0.5, 50)
+    spec1d_interp = []
+    meandir_interp = []
+    spread_interp = []
+    for i in range(len(p['spec1d'])):
+        spec1d_interp.append(np.interp(freq_interp, p['freq'].iloc[i,:], p['spec1d'].iloc[i,:]))
+        meandir_interp.append(np.interp(freq_interp, p['freq'].iloc[i,:], p['meandir'].iloc[i,:]))
+        spread_interp.append(np.interp(freq_interp, p['freq'].iloc[i,:], p['spread'].iloc[i,:]))
+    spec1d_interp = pd.DataFrame(spec1d_interp, index=p['spec1d'].index)
+    meandir_interp = pd.DataFrame(meandir_interp, index=p['meandir'].index)
+    spread_interp = pd.DataFrame(spread_interp, index=p['spread'].index)
+    return freq_interp, spec1d_interp, meandir_interp, spread_interp
 
-
+def calc_spec2d_matrix(s, d, spr):
+    """
+    Calcula matriz do espectro 2d
+    """
+    thetas = np.linspace(0, 360, 360)
+    d2 = np.zeros((len(thetas), len(freqi)))
+    for i in range(len(freqi)):
+        Dt = norm.pdf(thetas, d[i], spr[i]/2.35)
+        d2[:,i] = s[i] * Dt
+    return d2, thetas
