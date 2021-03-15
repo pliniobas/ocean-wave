@@ -248,10 +248,10 @@ def ondaf(eta, etax, etay, h, nfft, fs):
 
     #calcula direcao de onda
     #mean direction
-    dire1 = np.array([np.angle(np.complex(b1[i],a1[i]), deg=True) for i in range(len(a1))])
+    dire1 = np.array([np.angle(np.complex(a1[i], b1[i]), deg=True) for i in range(len(a1))])
 
     #principal direction
-    dire2 = 0.5 * np.array([np.angle(np.complex(b2[i],a2[i]),deg=True) for i in range(len(a2))])
+    dire2 = 0.5 * np.array([np.angle(np.complex(a2[i], b2[i]),deg=True) for i in range(len(a2))])
     
     #condicao para valores maiores que 360 e menores que 0
     dire1[np.where(dire1 < 0)] = dire1[np.where(dire1 < 0)] + 360
