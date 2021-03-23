@@ -1,25 +1,10 @@
-# Processamento dos dados espectrais da boia
-# de Fortaleza do PNBOIA
-# - Calcula parâmetros de onda no tempo e frequencia
+# Processamento dos dados de ondas
+# Calcula parâmetros de onda no tempo e frequencia
+# Henrique Pereira
 
-
-import os, sys
 import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
 from matplotlib import mlab
-from scipy.interpolate import interp1d
-from pandas.plotting import register_matplotlib_converters
-from glob import glob
-register_matplotlib_converters()
-plt.close('all')
-
-def read_axys_hne(filename):
-    """
-    Leitura dos dados do sensor inercial da NavCon
-    """
-    df = pd.read_csv(filename, skiprows=12, sep='\s+', names=['time','hv','dn','de'])
-    return df
+get_ipython().magic('reset -sf')
 
 def espec1(x, nfft, fs):
     """
@@ -37,7 +22,6 @@ def espec1(x, nfft, fs):
     
     # matriz de saida
     aa = np.array([f,s,ici,ics]).T
-
     return aa
 
 def espec2(x, y, nfft, fs):
@@ -65,7 +49,8 @@ def espec2(x, y, nfft, fs):
     """
 
     #cross-spectral density - welch method (complex valued)
-    s, f = mlab.csd(x, y, NFFT=nfft, Fs=fs, detrend=mlab.detrend_mean, window=mlab.window_hanning, noverlap=nfft/2)
+    s, f = mlab.csd(x, y, NFFT=nfft, Fs=fs, detrend=mlab.detrend_mean,
+                    window=mlab.window_hanning, noverlap=nfft/2)
 
     # graus de liberdade    
     dof = len(x) / nfft * 2
@@ -91,7 +76,6 @@ def espec2(x, y, nfft, fs):
     
     # matriz de saida
     aa = np.array([f, s ,co, qd, ph, coer, ici, ics, icc]).T
-
     return aa
 
 def numeronda(h, df, reg):
@@ -247,6 +231,7 @@ def ondaf(eta, etax, etay, h, nfft, fs):
     b2 = 2 * snxny[:,2] / c
 
     #calcula direcao de onda
+
     #mean direction
     dire1 = np.array([np.angle(np.complex(a1[i], b1[i]), deg=True) for i in range(len(a1))])
 
@@ -262,19 +247,8 @@ def ondaf(eta, etax, etay, h, nfft, fs):
     #acha o indice da frequencia de pico
     ind = np.where(sn[:,1] == np.max(sn[:,1]))[0]
 
-    ii_swell = np.arange(0,18)
-    ii_sea = np.arange(18, len(sn))
-
-    # indice da frequencia de pico do swell
-    ind_swell = np.where(sn[ii_swell,1] == np.max(sn[ii_swell,1]))[0]
-
-    # indice da frequencia de pico do sea
-    ind_sea = np.where(sn[ii_sea,1] == np.max(sn[ii_sea,1]))[0] + ii_sea[0]
-
     #periodo de pico
     tp = (1. / f[ind])[0]
-    tp_swell = (1. / f[ind_swell])[0]
-    tp_sea = (1. / f[ind_sea])[0]
 
     # calcula os momentos espectrais
     m0 = np.sum(f**0 * sn[:,1]) * df
@@ -282,18 +256,13 @@ def ondaf(eta, etax, etay, h, nfft, fs):
     m2 = np.sum(f**2 * sn[:,1]) * df
     m3 = np.sum(f**3 * sn[:,1]) * df
     m4 = np.sum(f**4 * sn[:,1]) * df
-    m0_swell = np.sum(f[ii_swell]**0 * sn[ii_swell,1]) * df
-    m0_sea = np.sum(f[ii_sea]**0 * sn[ii_sea,1]) * df
+    moments = np.array([m0, m1, m2, m3, m4])
 
     #calculo da altura significativa
     hm0 = 4.01 * np.sqrt(m0)
-    hm0_swell = 4.01 * np.sqrt(m0_swell)
-    hm0_sea = 4.01 * np.sqrt(m0_sea)
 
     #direcao do periodo de pico
     dp = dire1[ind][0]
-    dp_swell = dire1[ind_swell][0]
-    dp_sea = dire1[ind_sea][0]
 
     # mean spectral frequency
     mean_spec_freq = m1 / m0
@@ -329,15 +298,26 @@ def ondaf(eta, etax, etay, h, nfft, fs):
     sigma1p = np.real(sigma1[ind])[0]
     sigma2p = np.real(sigma2[ind])[0]
 
-    # pondaf = np.array([hm0, tp, dp, sigma1p, sigma2p])
-
-    # aa = np.array([hm0, tp, dp, sigma1, sigma2, sigma1p, sigma2p, f, df, k, sn, snx, sny, snn, snnx, snny, snxny, snxnx, snyny, a1, b1, a2, b2, dire1, dire2])
-
-    waveout = {'hm0': hm0, 'tp': tp, 'dp': dp, 'f': f, 'sn': sn, 'dire1':dire1, 
-               'mean_spec_freq': mean_spec_freq, 'mean_spec_period': mean_spec_period,
-               'mean_zup_freq': mean_zup_freq, 'mean_zup_period': mean_zup_period,
-               'e': e, 'v': v, 'hm0_sea': hm0_sea, 'hm0_swell': hm0_swell, 'tp_sea': tp_sea,
-               'tp_swell': tp_swell, 'dp_sea': dp_sea, 'dp_swell': dp_swell}
+    waveout = {'hm0': hm0,
+               'tp': tp,
+               'dp': dp,
+               'f': f,
+               'sn': sn[:,1],
+               'dire1': dire1, 
+               'mean_spec_freq': mean_spec_freq,
+               'mean_spec_period': mean_spec_period,
+               'mean_zup_freq': mean_zup_freq,
+               'mean_zup_period': mean_zup_period,
+               'e': e,
+               'v': v,
+               'sigma1p': sigma1p,
+               'sigma2p': sigma2p,
+               'moments': moments,
+               'a1': a1,
+               'b1': b1,
+               'a2': a2,
+               'b2': b2,
+               }
     return waveout
 
 def ondap(hm0, tp, dp, sn, dire1):
@@ -355,6 +335,26 @@ def ondap(hm0, tp, dp, sn, dire1):
     pico 2 (menos energetico) se a energia for inferior a 15% da
     energia do pico 1 (mais energetico)
     '''
+    tp_swell = (1. / f[ind_swell])[0]
+    tp_sea = (1. / f[ind_sea])[0]
+
+    ii_swell = np.arange(0,18)
+    ii_sea = np.arange(18, len(sn))
+
+    # indice da frequencia de pico do swell
+    ind_swell = np.where(sn[ii_swell,1] == np.max(sn[ii_swell,1]))[0]
+
+    # indice da frequencia de pico do sea
+    ind_sea = np.where(sn[ii_sea,1] == np.max(sn[ii_sea,1]))[0] + ii_sea[0]
+
+    m0_swell = np.sum(f[ii_swell]**0 * sn[ii_swell,1]) * df
+    m0_sea = np.sum(f[ii_sea]**0 * sn[ii_sea,1]) * df
+
+    hm0_swell = 4.01 * np.sqrt(m0_swell)
+    hm0_sea = 4.01 * np.sqrt(m0_sea)
+
+    dp_swell = dire1[ind_swell][0]
+    dp_sea = dire1[ind_sea][0]
 
     #vetor de frequencia e energia
     f,s = sn[:,[0,1]].T
@@ -444,7 +444,7 @@ def ondap(hm0, tp, dp, sn, dire1):
 
     return hm01, tp1, dp1, hm02, tp2, dp2 #pondaf1
 
-def spread(en, a1, b1):
+def spread_kuik1988(en, a1, b1):
     '''
     Programa para calcular o espalhamento angular
     Kuik et al 1988

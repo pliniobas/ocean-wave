@@ -217,34 +217,28 @@ def plot_serie_wind_hs_tp_dp(date, ws, wd, hs, tp, dp, title=None):
     """
     """
     fig = plt.figure(figsize=(10,10))
-
     ax1 = fig.add_subplot(511)
     ax1.set_title(title)
     ax1.plot(ws)
     ax1.set_ylabel('WS [m/s]')
     ax1.grid()
-
     ax2 = fig.add_subplot(512)
     ax2.plot(wd)
     ax2.set_ylabel('WD [deg]')
     ax2.grid()
-
     ax3 = fig.add_subplot(513)
     ax3.plot(hs)
     ax3.set_ylabel('Hs [m]')
     ax3.grid()
-
     ax4 = fig.add_subplot(514)
     ax4.plot(tp)
     ax4.set_ylabel('Tp [s]')
     ax4.grid()
-
     ax5 = fig.add_subplot(515)
     ax5.plot(dp)
     ax5.set_yticks(np.arange(0, 360+45, 45))
     ax5.set_ylabel('Dp [deg]')
     ax5.grid()
-
     return fig
 
 def subplots_T(df):
