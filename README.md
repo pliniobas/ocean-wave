@@ -1,3 +1,5 @@
-# waveproc
+# Ocean Wave Data Processing
 
-Processamento de dados de ondas
+- Time and frequency domain data processing
+- Main ocean wave parameters
+- Heave, pitch and roll oceanographic buoys
