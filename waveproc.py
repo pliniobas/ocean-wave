@@ -4,7 +4,149 @@
 
 import numpy as np
 from matplotlib import mlab
-get_ipython().magic('reset -sf')
+from scipy import signal
+import pandas as pd
+# get_ipython().magic('reset -sf')
+
+
+def waveproc(t, s1, s2, s3, Fs, NFFT):
+    """
+    outpus:
+    cc - matriz com os espectros
+    pp - matriz com parametros de onda
+    """
+    # espectros simples
+    f, c11 = signal.welch(x=s1, fs=Fs, window='hann', nperseg=NFFT,
+                          noverlap=int(NFFT/2), nfft=NFFT, detrend='constant',
+                          return_onesided=True, scaling='density', axis=-1, average='mean')
+
+    f, c22 = signal.welch(x=s2, fs=Fs, window='hann', nperseg=NFFT,
+                          noverlap=int(NFFT/2), nfft=NFFT, detrend='constant',
+                          return_onesided=True, scaling='density', axis=-1, average='mean')
+
+    f, c33 = signal.welch(x=s3, fs=Fs, window='hann', nperseg=NFFT,
+                          noverlap=int(NFFT/2), nfft=NFFT, detrend='constant',
+                          return_onesided=True, scaling='density', axis=-1, average='mean')
+
+    # espectros cruzados
+    f, P12 = signal.csd(x=s1, y=s2, fs=Fs, window='hann', nperseg=NFFT,
+                        noverlap=int(NFFT/2), nfft=NFFT, detrend='constant',
+                        return_onesided=True, scaling='density', axis=-1, average='mean')
+    c12, q12 = np.real(P12), np.imag(P12)
+
+    f, P13 = signal.csd(x=s1, y=s3, fs=Fs, window='hann', nperseg=NFFT,
+                        noverlap=int(NFFT/2), nfft=NFFT, detrend='constant',
+                        return_onesided=True, scaling='density', axis=-1, average='mean')
+    c13, q13 = np.real(P13), np.imag(P13)
+
+    f, P23 = signal.csd(x=s2, y=s3, fs=Fs, window='hann', nperseg=NFFT,
+                        noverlap=int(NFFT/2), nfft=NFFT, detrend='constant',
+                        return_onesided=True, scaling='density', axis=-1, average='mean')
+    c23, q23 = np.real(P23), np.imag(P23)
+
+    # parametros em dataframe
+    cc = {'f': f, 'c11': c11, 'c22': c22, 'c33': c33, 'P12': P12, 'c12': c12, 'q12': q12,
+          'P13': P13, 'c13': c13, 'q13': q13, 'P23': P23, 'c23': c23, 'q23': q23}
+    cc = pd.DataFrame(cc)
+    cc.set_index('f', inplace=True)
+
+    # remove a primeira coluna de media
+    cc = cc.iloc[1:,:]
+
+    # calcula direcao de onda - Long (1980))
+    cc['a1'] = cc.q12 / (cc.c11 * (cc.c22 + cc.c33)) ** 0.5
+    cc['b1'] = cc.q13 / (cc.c11 * (cc.c22 + cc.c33)) ** 0.5
+    cc['a2'] = (cc.c22 - cc.c33) / (cc.c22 + cc.c33)
+    cc['b2'] = 2 * cc.c23 / (cc.c22 + cc.c33)
+    cc['theta'] = np.rad2deg(np.arctan2(cc.b1, cc.a1))
+    cc['theta'].loc[cc.theta<0] = cc['theta'].loc[cc.theta<0] + 360    
+
+    # dataframe com os parametros
+    # pp = pd.DataFrame()
+    pp = {}
+    # intervalo do vetor de frequencia
+    dff = np.diff(cc.index)[0]
+    #acha o indice da frequencia de pico
+    # ind = np.where(sn[:,1] == np.max(sn[:,1]))[0]
+    #periodo de pico
+    # tp = (1. / f[ind])[0]
+    # # calcula os momentos espectrais
+    pp['m0'] = np.sum(cc.index**0 * cc.c11) * dff
+    # m1 = np.sum(f**1 * sn[:,1]) * df
+    # m2 = np.sum(f**2 * sn[:,1]) * df
+    # m3 = np.sum(f**3 * sn[:,1]) * df
+    # m4 = np.sum(f**4 * sn[:,1]) * df
+    # moments = np.array([m0, m1, m2, m3, m4])
+    #calculo da altura significativa
+    pp['hm0'] = 4.01 * np.sqrt(pp['m0'])
+
+    pp['fp'] = cc.index[cc.c11 == cc.c11.max()].values[0]
+    pp['dp'] = cc.theta[cc.c11 == cc.c11.max()].values[0]
+    pp['tp'] = 1 / pp['fp']
+    #direcao do periodo de pico
+    # pp['dp'] = dire1[ind][0]
+    # # mean spectral frequency
+    # mean_spec_freq = m1 / m0
+    # # mean spectral period
+    # mean_spec_period = 1.0 / mean_spec_freq
+    # # average zero-up-crossing frequency
+    # mean_zup_freq = np.sqrt(m2 / m0)
+    # # average zero-up-crossing period
+    # mean_zup_period = 1.0 / mean_zup_freq
+    # # spectral bandwidth (Cartwright & Longuet-Higgins, 1956)
+    # e = np.sqrt(1 - (m2 ** 2 / (m0 * m2)))
+    # # spectral bandwidth (Longuet-Higgins, 1975)
+    # v = np.sqrt((m0 * m2) / (m1 ** 2) - 1)
+    # #Espalhamento direcional
+    # #formula do sigma1 do livro Tucker&Pitt(2001) "Waves in Ocean Engineering" pags 196-198
+    # c1 = np.sqrt(a1 ** 2 + b1 ** 2)
+    # c2 = np.sqrt(a2 ** 2 + b2 ** 2)    
+    # s1 = c1 / (1 - c1)
+    # s2 = (1 + 3 * c2 + np.sqrt(1 + 14 * c2 + c2 ** 2)) / (2 * (1 - c2))
+    # sigma1 = np.sqrt(2 - 2 * c1) * 180 / np.pi
+    # sigma2 = np.sqrt((1 - c2) / 2) * 180 / np.pi
+    # # acha o espalhamento angular da frequencia de pico
+    # sigma1p = np.real(sigma1[ind])[0]
+    # sigma2p = np.real(sigma2[ind])[0]
+    # parametros de onda no dominio do tempo
+    eta = s1 - np.mean(s1)
+    #criando os vetores H(altura),Cr(crista),Ca(cavado),T (periodo)
+    Cr, Ca, H, T = [], [], [], []
+    #acha os indices que cruzam o zero
+    z = np.where(np.diff(np.sign(eta)))[0]
+    #zeros ascendentes e descendentes
+    zas=z[0::2]
+    zde=z[1::2]
+    #calcula ondas individuas
+    for i in range(len(zas)-1):
+        onda = eta[zas[i]:(zas[i+1])+1]
+        cr = np.max(onda)
+        Cr.append(cr)
+        ca = np.min(onda)
+        Ca.append(ca)
+        H.append(cr + np.abs(ca))
+        T.append(t[zas[i+1]] - t[zas[i]])
+    H = np.array(H)
+    T = np.array(T)    
+    #coloca as alturas em ordem crescente
+    Hss = np.sort(H)
+    Hss = np.flipud(Hss)
+    #calcula a altura significativa (H 1/3)
+    div = int(len(Hss) / 3.0)
+    pp['hs'] = np.mean(Hss[0:div+1])    
+    #calcula a altura das 1/10 maiores (H 1/10)
+    div1 = int(len(Hss) / 10.0)
+    pp['h10'] = np.mean(Hss[0:div1+1]) #altura da media das um decimo maiores
+    #altura maxima
+    pp['hmax'] = np.max(H)    
+    #periodo medio
+    pp['tz'] = np.mean(T)
+    #calcula periodo associado a altura maxima
+    ind = np.where(H == pp['hmax'])[0][0]
+    pp['thmax'] = T[ind]
+    pp = pd.DataFrame(pp, index=[0])
+    return cc, pp
+
 
 def espec1(x, nfft, fs):
     """
