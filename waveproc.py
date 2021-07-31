@@ -59,7 +59,8 @@ def waveproc(t, s1, s2, s3, Fs, NFFT):
     cc['a2'] = (cc.c22 - cc.c33) / (cc.c22 + cc.c33)
     cc['b2'] = 2 * cc.c23 / (cc.c22 + cc.c33)
     cc['theta'] = np.rad2deg(np.arctan2(cc.b1, cc.a1))
-    cc['theta'].loc[cc.theta<0] = cc['theta'].loc[cc.theta<0] + 360    
+    cc['theta'] = cc['theta'] - 90
+    cc['theta'].loc[cc.theta<0] = cc['theta'].loc[cc.theta<0] + 360
 
     # dataframe com os parametros
     # pp = pd.DataFrame()
@@ -108,6 +109,7 @@ def waveproc(t, s1, s2, s3, Fs, NFFT):
     # # acha o espalhamento angular da frequencia de pico
     # sigma1p = np.real(sigma1[ind])[0]
     # sigma2p = np.real(sigma2[ind])[0]
+    
     # parametros de onda no dominio do tempo
     eta = s1 - np.mean(s1)
     #criando os vetores H(altura),Cr(crista),Ca(cavado),T (periodo)
