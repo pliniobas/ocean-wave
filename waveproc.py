@@ -112,13 +112,17 @@ def waveproc(t, s1, s2, s3, Fs, NFFT):
     
     # parametros de onda no dominio do tempo
     eta = s1 - np.mean(s1)
+
     #criando os vetores H(altura),Cr(crista),Ca(cavado),T (periodo)
     Cr, Ca, H, T = [], [], [], []
+
     #acha os indices que cruzam o zero
     z = np.where(np.diff(np.sign(eta)))[0]
+
     #zeros ascendentes e descendentes
     zas=z[0::2]
     zde=z[1::2]
+
     #calcula ondas individuas
     for i in range(len(zas)-1):
         onda = eta[zas[i]:(zas[i+1])+1]
@@ -128,27 +132,41 @@ def waveproc(t, s1, s2, s3, Fs, NFFT):
         Ca.append(ca)
         H.append(cr + np.abs(ca))
         T.append(t[zas[i+1]] - t[zas[i]])
-    H = np.array(H)
-    T = np.array(T)    
+    # H = np.array(H)
+    # T = np.array(T)
+
+    alt_per = np.array([H, T]).T
+
+    # matriz de altura e periodo em ordem
+    # crescente de altuas
+    alt_per_sort = alt_per[np.argsort(alt_per[:,0]), :]
+
     #coloca as alturas em ordem crescente
-    Hss = np.sort(H)
-    Hss = np.flipud(Hss)
-    #calcula a altura significativa (H 1/3)
-    div = int(len(Hss) / 3.0)
-    pp['hs'] = np.mean(Hss[0:div+1])    
+    Hss = alt_per_sort[:,0] # altura
+    Tss = alt_per_sort[:,1] # periodo relacionado a altura
+
+    #calcula a altura e periodo significativo (Hs e Ts)
+    div = int(len(alt_per) / 3.0)
+    pp['hs'] = np.mean(Hss[-div:])
+    pp['ts'] = np.mean(Tss[-div:])
+
     #calcula a altura das 1/10 maiores (H 1/10)
     div1 = int(len(Hss) / 10.0)
     pp['h10'] = np.mean(Hss[0:div1+1]) #altura da media das um decimo maiores
+
     #altura maxima
     pp['hmax'] = np.max(H)    
+
     #periodo medio
     pp['tz'] = np.mean(T)
+
     #calcula periodo associado a altura maxima
-    ind = np.where(H == pp['hmax'])[0][0]
+    ind = np.where(alt_per[:,0] == pp['hmax'])[0][0]
     pp['thmax'] = T[ind]
+
+    # cria dataframe com os parametros
     pp = pd.DataFrame(pp, index=[0])
     return cc, pp
-
 
 def espec1(x, nfft, fs):
     """
